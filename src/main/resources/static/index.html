@@ -45,7 +45,6 @@
         <div class="left-tabs">
             <button class="left-tab active" id="tabBtnTree" onclick="switchLeftTab('tree')">📂 Tree</button>
             <button class="left-tab" id="tabBtnGraph" onclick="switchLeftTab('graph')">📐 Schema</button>
-            <button class="left-tab graph-expand-btn" id="tabBtnExpand" onclick="toggleGraphDock()" title="Expand graph to full page" style="display:none;">⛶</button>
         </div>
 
         <!-- Tree view -->
@@ -65,8 +64,12 @@
         </div>
     </div>
 
-    <!-- RESIZE HANDLE -->
-    <div class="resize-handle" id="resizeHandle"></div>
+    <!-- RESIZE HANDLE + PANEL TOGGLE -->
+    <div class="resize-handle" id="resizeHandle">
+        <button class="panel-toggle-btn" id="panelToggleBtn"
+                onmousedown="event.stopPropagation()"
+                onclick="toggleGraphDock()" title="Expand schema graph">▶</button>
+    </div>
 
     <!-- RIGHT SIDE: Editor + Results -->
     <div class="right-panel">
@@ -146,14 +149,6 @@
     </div>
 </div>
 
-<!-- GRAPH FULLSCREEN OVERLAY -->
-<div id="graphOverlay" class="graph-overlay" style="display:none;">
-    <div class="graph-overlay-header">
-        <span>📐 Schema — Entity Relationship Diagram</span>
-        <button onclick="toggleGraphDock()" class="btn btn-sm">⊠ Close Fullscreen</button>
-    </div>
-    <div id="graphOverlayContent" class="entity-graph" style="flex:1;"></div>
-</div>
 
 <!-- OBJECT INSPECTOR MODAL -->
 <div id="inspectorModal" class="modal" onclick="closeInspector(event)">

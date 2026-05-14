@@ -75,27 +75,35 @@ function switchLeftTab(tab) {
     document.querySelectorAll('.left-tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
     document.getElementById('leftTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
-    document.getElementById('tabBtnExpand').style.display = (tab === 'graph') ? '' : 'none';
 }
 
-// ---- GRAPH DOCK (fullscreen overlay) ----
-let graphDocked = false;
+// ---- GRAPH PANEL EXPAND ----
+let graphExpanded = false;
+
 function toggleGraphDock() {
-    graphDocked = !graphDocked;
-    const overlay   = document.getElementById('graphOverlay');
-    const expandBtn = document.getElementById('tabBtnExpand');
-    overlay.style.display = graphDocked ? 'flex' : 'none';
-    expandBtn.textContent = graphDocked ? '⊠' : '⛶';
-    expandBtn.title = graphDocked ? 'Close fullscreen' : 'Expand to fullscreen';
-    if (graphDocked) {
-        renderGraphInto(document.getElementById('graphOverlayContent'), 3, 80, allEntities);
+    graphExpanded = !graphExpanded;
+    const panel     = document.getElementById('leftPanel');
+    const toggleBtn = document.getElementById('panelToggleBtn');
+    if (graphExpanded) {
+        panel.style.width    = Math.round(window.innerWidth * 0.65) + 'px';
+        panel.style.maxWidth = '90vw';
+        toggleBtn.textContent = '◀';
+        toggleBtn.title = 'Collapse panel';
+        switchLeftTab('graph');
+        renderGraphInto(document.getElementById('entityGraph'), 3, 50, allEntities);
     } else {
+        panel.style.width    = '260px';
+        panel.style.maxWidth = '';
+        toggleBtn.textContent = '▶';
+        toggleBtn.title = 'Expand schema graph';
         renderGraphInto(document.getElementById('entityGraph'), 1, 0, allEntities);
     }
 }
 
 function renderGraphInto(graphEl, cols, gapX, entities) {
     activeGraphEl = graphEl;
+    activeCols = cols;
+    activeGapX = gapX;
     if (!entities.length) { graphEl.innerHTML = '<div class="loading">No entities</div>'; return; }
 
     // Calculate positions (multi-column grid)
@@ -156,6 +164,7 @@ function loadEntities() {
         .then(r => r.json())
         .then(entities => {
             allEntities = entities;
+            entities.forEach(e => collapsedCards.add(e.simpleClassName));
             document.getElementById('entityCount').textContent = entities.length;
             renderEntityTree(entities);
             renderEntityGraph(entities);
@@ -200,7 +209,7 @@ function renderEntityTree(entities) {
                          onclick="selectEntity('${entity.className}', '${entity.simpleClassName}', '${fId}', this)"
                          title="${entity.className}">
                         <span class="tree-arrow">▸</span>
-                        <span class="tree-icon">🏷</span>
+                        <span class="tree-icon">◈</span>
                         <span class="entity-name">${entity.simpleClassName}</span>
                     </div>
                     <div class="entity-fields" id="${fId}">`;
@@ -292,6 +301,8 @@ let dragState      = null;
 let activeSvg      = null;   // reference to the live SVG element
 let activeDiagram  = null;   // reference to the live diagram div
 let activeGraphEl  = null;   // reference to the live graph container
+let activeCols     = 1;
+let activeGapX     = 0;
 
 function renderEntityGraph(entities) {
     renderGraphInto(document.getElementById('entityGraph'), 1, 0, entities);
@@ -306,7 +317,7 @@ function buildCard(entity, p) {
         const icon = f.id ? '🔑' : (f.association ? '🔗' : '○');
         const cls  = f.id ? 'gef-id' : (f.association ? 'gef-assoc' : '');
         const t    = f.type ? f.type.split('.').pop() : '';
-        fields += `<div class="gef ${cls}" onclick="insertFieldInQuery('${entity.simpleClassName}','${f.name}')">
+        fields += `<div class="gef ${cls}" onmousedown="event.stopPropagation()" onclick="insertFieldInQuery('${entity.simpleClassName}','${f.name}')">
             <span class="gef-icon">${icon}</span>
             <span class="gef-name">${f.name}</span>
             <span class="gef-type">${t}</span>
@@ -316,13 +327,15 @@ function buildCard(entity, p) {
                  style="left:${p.x}px;top:${p.y}px;width:${p.w}px;"
                  onmousedown="startCardDrag(event,'${entity.simpleClassName}')">
         <div class="gcard-header" title="${entity.className}">
-            <button class="gcollapse-btn" onclick="toggleCardCollapse(event,'${entity.simpleClassName}')"
+            <button class="gcollapse-btn" onmousedown="event.stopPropagation()"
+                    onclick="toggleCardCollapse(event,'${entity.simpleClassName}')"
                     title="${collapsed ? 'Expand' : 'Collapse'}">${collapsed ? '▶' : '▼'}</button>
             <span class="gcard-title">🏷 ${entity.simpleClassName}</span>
             <span class="gcard-pkg">${entity.packageName ? entity.packageName.split('.').pop() : ''}</span>
         </div>
         <div class="gcard-fields" id="gcf_${entity.simpleClassName}" ${collapsed ? 'style="display:none"' : ''}>${fields}</div>
-        <div class="gcard-footer" id="gcfoot_${entity.simpleClassName}" onclick="queryFromGraph('${entity.simpleClassName}')"
+        <div class="gcard-footer" id="gcfoot_${entity.simpleClassName}"
+             onmousedown="event.stopPropagation()" onclick="queryFromGraph('${entity.simpleClassName}')"
              ${collapsed ? 'style="display:none"' : ''}>▶ Query</div>
     </div>`;
 }
@@ -332,10 +345,10 @@ function toggleCardCollapse(event, name) {
     const collapsed = collapsedCards.has(name);
     if (collapsed) collapsedCards.delete(name); else collapsedCards.add(name);
 
-    const fields = document.getElementById('gcf_' + name);
-    const footer = document.getElementById('gcfoot_' + name);
+    const fields = activeGraphEl.querySelector('#gcf_' + name);
+    const footer = activeGraphEl.querySelector('#gcfoot_' + name);
     const btn    = event.currentTarget;
-    const card   = document.getElementById('gc_' + name);
+    const card   = activeGraphEl.querySelector('#gc_' + name);
 
     fields.style.display = collapsed ? '' : 'none';
     footer.style.display = collapsed ? '' : 'none';
@@ -354,20 +367,40 @@ function toggleCardCollapse(event, name) {
 }
 
 function reflowCards() {
-    if (!activeGraphEl) return;
-    let y = ORIGIN_Y;
-    allEntities.forEach(e => {
-        const p = cardPositions[e.simpleClassName];
-        p.y = y;
-        // Find card within the active container only
-        const card = activeGraphEl.querySelector('#gc_' + e.simpleClassName);
-        if (card) card.style.top = y + 'px';
-        y += p.h + GAP_Y;
+    if (!activeGraphEl || !allEntities.length) return;
+    const cols = activeCols;
+    const gapX = activeGapX;
+
+    // Recalculate max height per row
+    const maxH = [];
+    allEntities.forEach((e, i) => {
+        const row = Math.floor(i / cols);
+        if (!maxH[row]) maxH[row] = 0;
+        maxH[row] = Math.max(maxH[row], cardPositions[e.simpleClassName].h);
     });
-    if (activeDiagram) activeDiagram.style.height = y + 'px';
-    if (activeSvg) {
-        activeSvg.setAttribute('height', y);
-    }
+
+    // Assign x/y for each card
+    allEntities.forEach((e, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        let y = ORIGIN_Y;
+        for (let r = 0; r < row; r++) y += (maxH[r] || 0) + GAP_Y;
+        const x = ORIGIN_X + col * (CARD_W + gapX);
+        cardPositions[e.simpleClassName].x = x;
+        cardPositions[e.simpleClassName].y = y;
+        const card = activeGraphEl.querySelector('#gc_' + e.simpleClassName);
+        if (card) { card.style.top = y + 'px'; card.style.left = x + 'px'; }
+    });
+
+    const totalRows = Math.ceil(allEntities.length / cols);
+    let canvasH = ORIGIN_Y;
+    for (let r = 0; r < totalRows; r++) canvasH += (maxH[r] || 0) + GAP_Y;
+    const canvasW = cols === 1
+        ? ORIGIN_X + CARD_W + DETOUR_X + 20
+        : ORIGIN_X + cols * (CARD_W + gapX) + DETOUR_X + 20;
+
+    if (activeDiagram) { activeDiagram.style.height = canvasH + 'px'; activeDiagram.style.width = canvasW + 'px'; }
+    if (activeSvg) { activeSvg.setAttribute('height', canvasH); activeSvg.setAttribute('width', canvasW); }
 }
 
 function refreshLines(entities) {
@@ -449,7 +482,9 @@ function queryFromGraph(simpleName) {
     const alias = simpleName.charAt(0).toLowerCase();
     const hql   = `from ${simpleName} ${alias}`;
     editor.setValue(hql);
+    if (graphExpanded) toggleGraphDock();
     switchLeftTab('tree');
+    executeQuery();
 }
 
 // ---- QUERY EXECUTION ----
