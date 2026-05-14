@@ -2,15 +2,16 @@ package com.hqc.service;
 
 import com.hqc.model.EntityInfo;
 import com.hqc.model.FieldInfo;
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.metamodel.Attribute;
+import jakarta.persistence.metamodel.EntityType;
+import jakarta.persistence.metamodel.SingularAttribute;
 import org.hibernate.SessionFactory;
-import org.hibernate.metadata.ClassMetadata;
-import org.hibernate.type.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
 
 @Service
@@ -48,53 +49,44 @@ public class EntityMetadataService {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private List<EntityInfo> buildEntityList() {
         List<EntityInfo> list = new ArrayList<>();
-        Map<String, ClassMetadata> allMeta = sessionFactory.getAllClassMetadata();
 
-        for (Map.Entry<String, ClassMetadata> entry : allMeta.entrySet()) {
-            String className = entry.getKey();
-            ClassMetadata meta = entry.getValue();
-
+        for (EntityType<?> entityType : sessionFactory.getMetamodel().getEntities()) {
+            String className = entityType.getJavaType().getName();
             List<FieldInfo> fields = new ArrayList<>();
 
-            // ID property
-            String idName = meta.getIdentifierPropertyName();
-            if (idName != null) {
-                Type idType = meta.getIdentifierType();
-                fields.add(new FieldInfo(
-                    idName,
-                    idType != null ? idType.getName() : "unknown",
-                    idName,
+            // ID attributes first
+            entityType.getSingularAttributes().stream()
+                .filter(SingularAttribute::isId)
+                .forEach(sa -> fields.add(new FieldInfo(
+                    sa.getName(),
+                    sa.getJavaType().getSimpleName(),
+                    sa.getName(),
                     true,
                     false
-                ));
-            }
+                )));
 
-            // Other properties
-            String[] propNames = meta.getPropertyNames();
-            Type[] propTypes = meta.getPropertyTypes();
+            // Non-ID attributes
+            Set<String> idNames = new HashSet<>();
+            entityType.getSingularAttributes().stream()
+                .filter(SingularAttribute::isId)
+                .forEach(sa -> idNames.add(sa.getName()));
 
-            for (int i = 0; i < propNames.length; i++) {
-                String propName = propNames[i];
-                Type propType = propTypes[i];
-                boolean isAssoc = propType instanceof AssociationType;
-
+            for (Attribute<?, ?> attr : entityType.getAttributes()) {
+                if (idNames.contains(attr.getName())) continue;
                 fields.add(new FieldInfo(
-                    propName,
-                    propType != null ? propType.getName() : "unknown",
-                    propName,
+                    attr.getName(),
+                    attr.getJavaType().getSimpleName(),
+                    attr.getName(),
                     false,
-                    isAssoc
+                    attr.isAssociation()
                 ));
             }
 
-            String tableName = meta.getEntityName();
-            list.add(new EntityInfo(className, tableName, fields));
+            list.add(new EntityInfo(className, entityType.getName(), fields));
         }
 
-        // Sort by class name
         list.sort(Comparator.comparing(EntityInfo::getClassName));
         return list;
     }

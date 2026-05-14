@@ -2,8 +2,16 @@ package com.hqc.service;
 
 import com.hqc.model.QueryRequest;
 import com.hqc.model.QueryResult;
-import org.hibernate.*;
-import org.hibernate.engine.SessionFactoryImplementor;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.TupleElement;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import org.hibernate.HibernateException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.NativeQuery;
+import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +41,6 @@ public class HqlExecutionService {
     public QueryResult execute(QueryRequest request) {
         long start = System.currentTimeMillis();
 
-        // Safety check for read-only mode
         if (globalReadOnly || request.isReadOnly()) {
             String hqlLower = request.getHql().trim().toLowerCase();
             if (hqlLower.startsWith("update") ||
@@ -52,7 +59,8 @@ public class HqlExecutionService {
             session = sessionFactory.openSession();
             tx = session.beginTransaction();
 
-            Query query = session.createQuery(request.getHql());
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            org.hibernate.query.Query query = session.createQuery(request.getHql());
             query.setTimeout(queryTimeout);
 
             int max = Math.min(request.getMaxResults(), maxAllowedResults);
@@ -60,11 +68,8 @@ public class HqlExecutionService {
             query.setFirstResult(request.getFirstResult());
 
             List<?> rawResults = query.list();
-
-            // Generate SQL
             String sql = generateSql(request.getHql());
 
-            // Convert results to maps
             List<Map<String, Object>> rows = new ArrayList<>();
             List<String> columns = new ArrayList<>();
             boolean columnsSet = false;
@@ -78,7 +83,7 @@ public class HqlExecutionService {
                 rows.add(rowMap);
             }
 
-            tx.rollback(); // Always rollback - we're read-only by default
+            tx.rollback();
             long elapsed = System.currentTimeMillis() - start;
             log.info("Query executed in {}ms, {} rows returned", elapsed, rows.size());
             return QueryResult.success(rows, columns, elapsed, sql);
@@ -104,21 +109,22 @@ public class HqlExecutionService {
             session = sessionFactory.openSession();
             tx = session.beginTransaction();
 
-            org.hibernate.SQLQuery query = session.createSQLQuery(sql);
+            NativeQuery<Tuple> query = session.createNativeQuery(sql, Tuple.class);
             query.setTimeout(queryTimeout);
             query.setMaxResults(Math.min(maxResults, maxAllowedResults));
-            query.setResultTransformer(org.hibernate.transform.Transformers.ALIAS_TO_ENTITY_MAP);
 
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> rawRows = query.list();
-
+            List<Tuple> rawRows = query.getResultList();
             List<Map<String, Object>> rows = new ArrayList<>();
             List<String> columns = new ArrayList<>();
             boolean columnsSet = false;
-            for (Map<String, Object> raw : rawRows) {
+
+            for (Tuple tuple : rawRows) {
                 Map<String, Object> row = new LinkedHashMap<>();
-                for (Map.Entry<String, Object> entry : raw.entrySet()) {
-                    row.put(entry.getKey(), safeValue(entry.getValue()));
+                List<TupleElement<?>> elements = tuple.getElements();
+                for (int i = 0; i < elements.size(); i++) {
+                    String alias = elements.get(i).getAlias() != null
+                        ? elements.get(i).getAlias() : "col" + i;
+                    row.put(alias, safeValue(tuple.get(i)));
                 }
                 if (!columnsSet) { columns.addAll(row.keySet()); columnsSet = true; }
                 rows.add(row);
@@ -139,28 +145,35 @@ public class HqlExecutionService {
     }
 
     public String generateSql(String hql) {
-        // For simple "from EntityName [alias]" queries, use Criteria API so that
-        // fetch="join" mappings produce the correct JOIN SQL.
         String criteriaSQL = tryGenerateSqlViaCriteria(hql);
         if (criteriaSQL != null) return criteriaSQL;
+        return captureHqlSql(hql);
+    }
 
-        // Complex HQL: fall back to HQL query plan (no DB hit needed)
+    private String captureHqlSql(String hql) {
+        List<String> captured = new ArrayList<>();
+        StatementInspector inspector = sql -> { captured.add(sql); return sql; };
+        Session session = null;
+        Transaction tx = null;
         try {
-            SessionFactoryImplementor sfi = (SessionFactoryImplementor) sessionFactory;
-            org.hibernate.engine.query.HQLQueryPlan plan =
-                sfi.getQueryPlanCache().getHQLQueryPlan(hql, false, Collections.emptyMap());
-            String[] sqls = plan.getSqlStrings();
-            if (sqls == null || sqls.length == 0) return "No SQL generated";
-            return String.join("\n\n/* --- */\n\n", sqls);
+            session = sessionFactory.withOptions().statementInspector(inspector).openSession();
+            tx = session.beginTransaction();
+            session.createQuery(hql).setMaxResults(1).list();
+            tx.rollback();
         } catch (Exception e) {
-            return "Could not generate SQL: " + e.getMessage();
+            if (tx != null) try { tx.rollback(); } catch (Exception ignored) {}
+            if (captured.isEmpty()) return "Could not generate SQL: " + e.getMessage();
+        } finally {
+            if (session != null) try { session.close(); } catch (Exception ignored) {}
         }
+        if (captured.isEmpty()) return "No SQL generated";
+        List<String> unique = new ArrayList<>(new LinkedHashSet<>(captured));
+        return String.join("\n\n/* --- */\n\n", unique);
     }
 
     private String tryGenerateSqlViaCriteria(String hql) {
         String trimmed = hql.trim();
         String lower = trimmed.toLowerCase();
-        // Only handle plain "from EntityName [alias]" — skip anything with clauses or joins
         if (!lower.startsWith("from ")) return null;
         if (lower.contains(" where ") || lower.contains(" order by ") ||
             lower.contains(" group by ") || lower.contains(" join ") ||
@@ -173,13 +186,17 @@ public class HqlExecutionService {
         Class<?> entityClass = resolveEntityClass(entityShortName);
         if (entityClass == null) return null;
 
-        SqlCapturingInterceptor interceptor = new SqlCapturingInterceptor();
+        List<String> captured = new ArrayList<>();
+        StatementInspector inspector = sql -> { captured.add(sql); return sql; };
         Session session = null;
         Transaction tx = null;
         try {
-            session = ((SessionFactoryImplementor) sessionFactory).openSession(interceptor);
+            session = sessionFactory.withOptions().statementInspector(inspector).openSession();
             tx = session.beginTransaction();
-            session.createCriteria(entityClass).list();
+            CriteriaBuilder cb = session.getCriteriaBuilder();
+            CriteriaQuery<?> cq = cb.createQuery(entityClass);
+            cq.from(entityClass);
+            session.createQuery(cq).getResultList();
             tx.rollback();
         } catch (Exception e) {
             if (tx != null) try { tx.rollback(); } catch (Exception ignored) {}
@@ -187,75 +204,42 @@ public class HqlExecutionService {
             if (session != null) try { session.close(); } catch (Exception ignored) {}
         }
 
-        List<String> sqls = interceptor.getSqls();
-        if (sqls.isEmpty()) return null;
-        // Deduplicate — keep first occurrence of each unique SQL
-        List<String> unique = new ArrayList<>(new LinkedHashSet<>(sqls));
+        if (captured.isEmpty()) return null;
+        List<String> unique = new ArrayList<>(new LinkedHashSet<>(captured));
         return String.join("\n\n/* --- */\n\n", unique);
     }
 
     private Class<?> resolveEntityClass(String shortName) {
-        SessionFactoryImplementor sfi = (SessionFactoryImplementor) sessionFactory;
-        for (Object meta : sfi.getAllClassMetadata().values()) {
-            org.hibernate.metadata.ClassMetadata m = (org.hibernate.metadata.ClassMetadata) meta;
-            String entityName = m.getEntityName();
-            if (entityName.equals(shortName) || entityName.endsWith("." + shortName)) {
-                try { return Class.forName(entityName); } catch (ClassNotFoundException ignored) {}
-            }
-        }
-        return null;
-    }
-
-    private static class SqlCapturingInterceptor extends org.hibernate.EmptyInterceptor {
-        private final List<String> sqls = new ArrayList<>();
-        @Override
-        public String onPrepareStatement(String sql) {
-            sqls.add(sql);
-            return sql;
-        }
-        public List<String> getSqls() { return sqls; }
+        return sessionFactory.getMetamodel().getEntities().stream()
+            .filter(e -> e.getName().equals(shortName) ||
+                         e.getJavaType().getSimpleName().equals(shortName))
+            .map(e -> (Class<?>) e.getJavaType())
+            .findFirst()
+            .orElse(null);
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> objectToMap(Object obj) {
         Map<String, Object> map = new LinkedHashMap<>();
-        if (obj == null) {
-            map.put("value", null);
-            return map;
-        }
+        if (obj == null) { map.put("value", null); return map; }
 
-        // Handle Object arrays (multiple return values)
         if (obj instanceof Object[]) {
             Object[] arr = (Object[]) obj;
-            for (int i = 0; i < arr.length; i++) {
-                map.put("col" + i, safeValue(arr[i]));
-            }
+            for (int i = 0; i < arr.length; i++) map.put("col" + i, safeValue(arr[i]));
             return map;
         }
-
-        // Handle Maps
         if (obj instanceof Map) {
-            Map<?, ?> m = (Map<?, ?>) obj;
-            for (Map.Entry<?, ?> entry : m.entrySet()) {
-                map.put(String.valueOf(entry.getKey()), safeValue(entry.getValue()));
-            }
+            ((Map<?, ?>) obj).forEach((k, v) -> map.put(String.valueOf(k), safeValue(v)));
             return map;
         }
+        if (isPrimitive(obj)) { map.put("value", obj); return map; }
 
-        // Handle primitives/strings
-        if (isPrimitive(obj)) {
-            map.put("value", obj);
-            return map;
-        }
-
-        // Handle entity objects via reflection
         Class<?> cls = obj.getClass();
         while (cls != null && cls != Object.class) {
             for (Field field : cls.getDeclaredFields()) {
                 try {
                     field.setAccessible(true);
-                    Object val = field.get(obj);
-                    map.put(field.getName(), safeValue(val));
+                    map.put(field.getName(), safeValue(field.get(obj)));
                 } catch (Exception ignored) {}
             }
             cls = cls.getSuperclass();
@@ -267,26 +251,20 @@ public class HqlExecutionService {
         if (val == null) return null;
         if (isPrimitive(val)) return val;
         if (val instanceof Date) return val.toString();
-        // For complex objects, just return class name + toString
-        try {
-            return val.getClass().getSimpleName() + ": " + val.toString();
-        } catch (Exception e) {
-            return val.getClass().getSimpleName();
-        }
+        try { return val.getClass().getSimpleName() + ": " + val; }
+        catch (Exception e) { return val.getClass().getSimpleName(); }
     }
 
     private boolean isPrimitive(Object val) {
-        return val instanceof String ||
-               val instanceof Number ||
-               val instanceof Boolean ||
-               val instanceof Character;
+        return val instanceof String || val instanceof Number ||
+               val instanceof Boolean || val instanceof Character;
     }
 
     private String getStackTrace(Exception e) {
         StringBuilder sb = new StringBuilder();
         sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
         for (StackTraceElement el : e.getStackTrace()) {
-            sb.append("\tat ").append(el.toString()).append("\n");
+            sb.append("\tat ").append(el).append("\n");
             if (sb.length() > 3000) { sb.append("... (truncated)"); break; }
         }
         return sb.toString();
