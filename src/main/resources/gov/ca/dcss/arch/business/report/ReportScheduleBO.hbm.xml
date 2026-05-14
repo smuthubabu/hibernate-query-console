@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <class name="gov.ca.dcss.arch.business.report.ReportScheduleBO" table="REPORT_SCHEDULE" schema="DB2INST1">
+        <id name="scheduleId" column="SCHEDULE_ID" type="long">
+            <generator class="increment"/>
+        </id>
+        <many-to-one name="reportDefinition"
+                     class="gov.ca.dcss.arch.business.report.ReportDefinitionBO"
+                     column="REPORT_ID"
+                     not-null="true"
+                     fetch="join"/>
+        <property name="cronExpression" column="CRON_EXPRESSION" type="string" length="100"/>
+        <property name="status"         column="STATUS"          type="string" length="20"/>
+        <property name="nextRunDate"    column="NEXT_RUN_DATE"   type="timestamp"/>
+        <property name="lastRunDate"    column="LAST_RUN_DATE"   type="timestamp"/>
+        <property name="createdBy"      column="CREATED_BY"      type="string" length="50"/>
+    </class>
+</hibernate-mapping>

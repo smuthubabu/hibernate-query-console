@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hibernate Query Console</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="light">
+
+<!-- HEADER -->
+<header class="header">
+    <div class="header-left">
+        <span class="logo">🔍 Hibernate Query Console</span>
+        <span class="version">v1.0.0</span>
+    </div>
+    <div class="header-right">
+        <span id="healthDot" class="health-dot unknown" title="Checking connection..."></span>
+        <span id="healthText" class="health-text">Checking...</span>
+        <button onclick="checkHealth()" class="btn btn-sm">↺ Reconnect</button>
+        <label class="toggle-label">
+            <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+            🌙 Dark Mode
+        </label>
+        <label class="toggle-label">
+            <input type="checkbox" id="readOnlyToggle" checked>
+            🔒 Read Only
+        </label>
+    </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+    <!-- LEFT PANEL: Entity Browser -->
+    <div class="left-panel" id="leftPanel">
+        <div class="panel-header">
+            <span>🗂 Entities</span>
+            <span id="entityCount" class="badge">0</span>
+        </div>
+        <div class="left-tabs">
+            <button class="left-tab active" id="tabBtnTree" onclick="switchLeftTab('tree')">📂 Tree</button>
+            <button class="left-tab" id="tabBtnGraph" onclick="switchLeftTab('graph')">📐 Schema</button>
+            <button class="left-tab graph-expand-btn" id="tabBtnExpand" onclick="toggleGraphDock()" title="Expand graph to full page" style="display:none;">⛶</button>
+        </div>
+
+        <!-- Tree view -->
+        <div id="leftTabTree" class="left-tab-content active">
+            <input type="text" id="entitySearch" placeholder="Search entities..."
+                   oninput="filterEntities(this.value)" class="search-box">
+            <div id="entityTree" class="entity-tree">
+                <div class="loading">Loading entities...</div>
+            </div>
+        </div>
+
+        <!-- Schema / Graph view -->
+        <div id="leftTabGraph" class="left-tab-content">
+            <div id="entityGraph" class="entity-graph">
+                <div class="loading">Loading schema...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle" id="resizeHandle"></div>
+
+    <!-- RIGHT SIDE: Editor + Results -->
+    <div class="right-panel">
+
+        <!-- QUERY EDITOR SECTION -->
+        <div class="editor-section">
+            <div class="editor-toolbar">
+                <button onclick="executeQuery()" class="btn btn-primary" title="Ctrl+Enter">
+                    ▶ Execute
+                </button>
+                <button onclick="showGeneratedSql()" class="btn btn-secondary">
+                    📄 Show SQL
+                </button>
+                <button onclick="validateQuery()" class="btn btn-secondary">
+                    ✓ Validate
+                </button>
+                <button onclick="clearEditor()" class="btn btn-secondary">
+                    🗑 Clear
+                </button>
+                <select id="historySelect" onchange="loadFromHistory(this.value)" class="select-box">
+                    <option value="">⏱ Query History...</option>
+                </select>
+                <select id="savedSelect" onchange="loadSaved(this.value)" class="select-box">
+                    <option value="">⭐ Saved Queries...</option>
+                </select>
+                <button onclick="saveQuery()" class="btn btn-secondary">💾 Save</button>
+                <span id="execStatus" class="exec-status"></span>
+            </div>
+            <div id="editorContainer">
+                <textarea id="hqlEditor">from ReportDefinitionBO</textarea>
+            </div>
+        </div>
+
+        <!-- RESULTS SECTION -->
+        <div class="results-section">
+            <div class="results-tabs">
+                <button class="tab-btn active" onclick="showTab('results')">📋 Results</button>
+                <button class="tab-btn" onclick="showTab('sql')">📄 SQL</button>
+                <button class="tab-btn" onclick="showTab('messages')">💬 Messages</button>
+                <button class="tab-btn" onclick="showTab('error')">⚠ Error</button>
+                <div class="tab-spacer"></div>
+                <span id="resultStats" class="result-stats"></span>
+                <button onclick="exportCSV()" class="btn btn-sm">⬇ CSV</button>
+                <button onclick="exportJSON()" class="btn btn-sm">⬇ JSON</button>
+            </div>
+
+            <!-- Results Table Tab -->
+            <div id="tab-results" class="tab-content active">
+                <div id="resultsContainer">
+                    <div class="empty-state">Run a query to see results</div>
+                </div>
+                <div id="paginationContainer" class="pagination"></div>
+            </div>
+
+            <!-- SQL Tab -->
+            <div id="tab-sql" class="tab-content" style="flex-direction:column;">
+                <div class="sql-toolbar">
+                    <button onclick="runGeneratedSql()" class="btn btn-primary btn-sm">▶ Run SQL</button>
+                    <button onclick="copySql()" class="btn btn-secondary btn-sm copy-sql-btn">📋 Copy SQL</button>
+                    <span class="exec-status" id="sqlExecStatus"></span>
+                </div>
+                <pre id="sqlOutput" class="code-output" style="flex:1;">Click "Show SQL" to see the generated SQL</pre>
+            </div>
+
+            <!-- Messages Tab -->
+            <div id="tab-messages" class="tab-content">
+                <div id="messagesOutput" class="messages-output">
+                    <div class="msg-entry info">Console ready. Run a query to begin.</div>
+                </div>
+            </div>
+
+            <!-- Error Tab -->
+            <div id="tab-error" class="tab-content">
+                <pre id="errorOutput" class="code-output error-output">No errors</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GRAPH FULLSCREEN OVERLAY -->
+<div id="graphOverlay" class="graph-overlay" style="display:none;">
+    <div class="graph-overlay-header">
+        <span>📐 Schema — Entity Relationship Diagram</span>
+        <button onclick="toggleGraphDock()" class="btn btn-sm">⊠ Close Fullscreen</button>
+    </div>
+    <div id="graphOverlayContent" class="entity-graph" style="flex:1;"></div>
+</div>
+
+<!-- OBJECT INSPECTOR MODAL -->
+<div id="inspectorModal" class="modal" onclick="closeInspector(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span id="inspectorTitle">Object Inspector</span>
+            <button onclick="closeInspectorBtn()" class="close-btn">✕</button>
+        </div>
+        <div id="inspectorBody" class="modal-body"></div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

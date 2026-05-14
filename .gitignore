@@ -1,0 +1,9 @@
+target/
+logs/
+*.log
+*.log.*.gz
+*.jar
+.idea/
+*.iml
+.claude/
+data-model-snapshot.json

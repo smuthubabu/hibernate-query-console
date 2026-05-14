@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<!--
+  ============================================================
+  hibernate.cfg.xml TEMPLATE for HQL Query Console
+  Copy this file to config/hibernate.cfg.xml and fill in your
+  DB2 connection details.
+  ============================================================
+-->
+<hibernate-configuration>
+    <session-factory>
+
+        <!-- DB2 Type 4 JDBC Driver (pure Java, no DLL needed) -->
+        <property name="connection.driver_class">com.ibm.db2.jcc.DB2Driver</property>
+
+        <!-- DB2 Connection URL - Type 4 format -->
+        <!-- Replace: HOST, PORT, DATABASE -->
+        <property name="connection.url">jdbc:db2://HOST:50000/DATABASE</property>
+
+        <!-- DB2 Credentials -->
+        <property name="connection.username">YOUR_USERNAME</property>
+        <property name="connection.password">YOUR_PASSWORD</property>
+
+        <!-- DB2 Dialect -->
+        <property name="dialect">org.hibernate.dialect.DB2Dialect</property>
+
+        <!-- Connection Pool -->
+        <property name="connection.pool_size">5</property>
+
+        <!-- Show SQL in logs -->
+        <property name="show_sql">true</property>
+        <property name="format_sql">true</property>
+
+        <!-- Schema -->
+        <property name="default_schema">YOUR_SCHEMA</property>
+
+        <!-- ============================================================
+             Add your existing .hbm.xml mappings below
+             ============================================================ -->
+
+        <!-- Example mappings - replace with your actual paths -->
+        <!--
+        <mapping resource="gov/ca/dcss/arch/business/report/ReportDefinitionBO.hbm.xml"/>
+        <mapping resource="gov/ca/dcss/arch/business/job/partition/TaskPartitionBO.hbm.xml"/>
+        -->
+
+        <!-- OR use a directory scan (configured in application.properties) -->
+
+    </session-factory>
+</hibernate-configuration>
