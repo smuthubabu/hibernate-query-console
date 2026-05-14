@@ -31,16 +31,10 @@ Hibernate 3.x / DB2 project from any browser.
 ### 1. Build
 ```bash
 cd hibernate-query-console
-
-# Add DB2 JARs to local Maven repo first (they're not on Maven Central)
-mvn install:install-file -Dfile=/path/to/jcc-11.5.9.0.jar \
-    -DgroupId=com.ibm.db2 -DartifactId=jcc -Dversion=11.5.9.0 -Dpackaging=jar
-
-mvn install:install-file -Dfile=/path/to/db2jcc_license_cu.jar \
-    -DgroupId=com.ibm.db2 -DartifactId=db2jcc_license_cu -Dversion=11.5.9.0 -Dpackaging=jar
-
 mvn clean package
 ```
+
+> The DB2 JDBC driver (`com.ibm.db2:jcc:11.5.9.0`) is available on Maven Central — no manual JAR installation needed.
 
 ### 2. Configure
 ```bash
@@ -99,22 +93,15 @@ server.port=8080
 
 ## DB2 JAR Setup
 
-The DB2 JDBC driver is NOT on Maven Central. You must install it locally:
+`com.ibm.db2:jcc:11.5.9.0` is published on Maven Central. Maven resolves it automatically — no manual installation required.
+
+If your organisation uses a private Maven mirror that does not proxy Maven Central, add the driver JAR to your internal repository or install it locally:
 
 ```bash
-# Install main driver
 mvn install:install-file \
-  -Dfile=/opt/ibm/jcc-11.5.9.0.jar \
+  -Dfile=/path/to/jcc-11.5.9.0.jar \
   -DgroupId=com.ibm.db2 \
   -DartifactId=jcc \
-  -Dversion=11.5.9.0 \
-  -Dpackaging=jar
-
-# Install license JAR
-mvn install:install-file \
-  -Dfile=/opt/ibm/db2jcc_license_cu.jar \
-  -DgroupId=com.ibm.db2 \
-  -DartifactId=db2jcc_license_cu \
   -Dversion=11.5.9.0 \
   -Dpackaging=jar
 ```
