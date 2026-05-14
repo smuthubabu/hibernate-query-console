@@ -91,22 +91,6 @@ server.port=8080
 
 ---
 
-## DB2 JAR Setup
-
-`com.ibm.db2:jcc:11.5.9.0` is published on Maven Central. Maven resolves it automatically — no manual installation required.
-
-If your organisation uses a private Maven mirror that does not proxy Maven Central, add the driver JAR to your internal repository or install it locally:
-
-```bash
-mvn install:install-file \
-  -Dfile=/path/to/jcc-11.5.9.0.jar \
-  -DgroupId=com.ibm.db2 \
-  -DartifactId=jcc \
-  -Dversion=11.5.9.0 \
-  -Dpackaging=jar
-```
-
----
 
 ## Troubleshooting
 
