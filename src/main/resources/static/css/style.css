@@ -357,7 +357,21 @@ body {
     border-color: var(--primary-hover);
     box-shadow: 0 2px 6px rgba(37,99,235,0.35);
 }
+body.dark .btn-primary            { background: #2563eb; border-color: #2563eb; box-shadow: 0 1px 3px rgba(37,99,235,0.4); }
+body.dark .btn-primary:hover      { background: #1d4ed8; border-color: #1d4ed8; }
 .btn-secondary { }
+.btn-success {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+    box-shadow: 0 1px 3px rgba(22,163,74,0.25);
+}
+.btn-success:hover {
+    filter: brightness(0.9);
+    box-shadow: 0 2px 6px rgba(22,163,74,0.35);
+}
+body.dark .btn-success            { background: #059669; border-color: #059669; box-shadow: 0 1px 3px rgba(5,150,105,0.4); }
+body.dark .btn-success:hover      { background: #047857; border-color: #047857; }
 .btn-sm { padding: 3px 9px; font-size: 11px; }
 .select-box {
     padding: 4px 8px;

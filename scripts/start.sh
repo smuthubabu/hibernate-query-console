@@ -4,7 +4,7 @@
 # =============================================
 
 APP_NAME="hibernate-query-console"
-APP_JAR="hibernate-query-console.jar"
+APP_JAR="target/hibernate-query-console.jar"
 APP_HOME="$(cd "$(dirname "$0")/.." && pwd)"
 PID_FILE="$APP_HOME/logs/app.pid"
 LOG_FILE="$APP_HOME/logs/hibernate-query-console.log"
