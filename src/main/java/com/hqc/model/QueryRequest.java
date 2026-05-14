@@ -1,4 +1,4 @@
-package com.hibernateconsole.model;
+package com.hqc.model;
 
 import java.util.List;
 

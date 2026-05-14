@@ -1,4 +1,4 @@
-package com.hibernateconsole;
+package com.hqc;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

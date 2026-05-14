@@ -1,4 +1,4 @@
-package com.hibernateconsole.model;
+package com.hqc.model;
 
 public class FieldInfo {
     private String name;

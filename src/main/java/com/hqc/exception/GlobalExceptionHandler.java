@@ -1,6 +1,6 @@
-package com.hibernateconsole.exception;
+package com.hqc.exception;
 
-import com.hibernateconsole.model.QueryResult;
+import com.hqc.model.QueryResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

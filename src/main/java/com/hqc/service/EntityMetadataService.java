@@ -1,7 +1,7 @@
-package com.hibernateconsole.service;
+package com.hqc.service;
 
-import com.hibernateconsole.model.EntityInfo;
-import com.hibernateconsole.model.FieldInfo;
+import com.hqc.model.EntityInfo;
+import com.hqc.model.FieldInfo;
 import org.hibernate.SessionFactory;
 import org.hibernate.metadata.ClassMetadata;
 import org.hibernate.type.*;

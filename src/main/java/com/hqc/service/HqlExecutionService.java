@@ -1,7 +1,7 @@
-package com.hibernateconsole.service;
+package com.hqc.service;
 
-import com.hibernateconsole.model.QueryRequest;
-import com.hibernateconsole.model.QueryResult;
+import com.hqc.model.QueryRequest;
+import com.hqc.model.QueryResult;
 import org.hibernate.*;
 import org.hibernate.engine.SessionFactoryImplementor;
 import org.slf4j.Logger;

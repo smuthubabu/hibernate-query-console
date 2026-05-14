@@ -1,8 +1,8 @@
-package com.hibernateconsole.controller;
+package com.hqc.controller;
 
-import com.hibernateconsole.model.QueryRequest;
-import com.hibernateconsole.model.QueryResult;
-import com.hibernateconsole.service.HqlExecutionService;
+import com.hqc.model.QueryRequest;
+import com.hqc.model.QueryResult;
+import com.hqc.service.HqlExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

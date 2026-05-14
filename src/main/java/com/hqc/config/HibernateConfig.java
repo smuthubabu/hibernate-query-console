@@ -1,4 +1,4 @@
-package com.hibernateconsole.config;
+package com.hqc.config;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;

@@ -1,7 +1,7 @@
-package com.hibernateconsole.controller;
+package com.hqc.controller;
 
-import com.hibernateconsole.model.EntityInfo;
-import com.hibernateconsole.service.EntityMetadataService;
+import com.hqc.model.EntityInfo;
+import com.hqc.service.EntityMetadataService;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
