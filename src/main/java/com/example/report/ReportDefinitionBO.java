@@ -1,4 +1,4 @@
-package gov.ca.dcss.arch.business.report;
+package com.example.report;
 
 import java.io.Serializable;
 import java.util.Date;

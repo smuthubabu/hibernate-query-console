@@ -1,7 +1,7 @@
-package gov.ca.dcss.tools.hqlconsole.controller;
+package com.hibernateconsole.controller;
 
-import gov.ca.dcss.tools.hqlconsole.model.EntityInfo;
-import gov.ca.dcss.tools.hqlconsole.service.EntityMetadataService;
+import com.hibernateconsole.model.EntityInfo;
+import com.hibernateconsole.service.EntityMetadataService;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

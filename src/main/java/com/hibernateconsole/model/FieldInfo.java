@@ -1,4 +1,4 @@
-package gov.ca.dcss.tools.hqlconsole.model;
+package com.hibernateconsole.model;
 
 public class FieldInfo {
     private String name;

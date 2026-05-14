@@ -1,6 +1,6 @@
-package gov.ca.dcss.tools.hqlconsole.exception;
+package com.hibernateconsole.exception;
 
-import gov.ca.dcss.tools.hqlconsole.model.QueryResult;
+import com.hibernateconsole.model.QueryResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

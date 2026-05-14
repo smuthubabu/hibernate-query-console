@@ -30,8 +30,8 @@
         <property name="default_schema">DB2INST1</property>
 
         <!-- Mappings -->
-        <mapping resource="gov/ca/dcss/arch/business/report/ReportDefinitionBO.hbm.xml"/>
-        <mapping resource="gov/ca/dcss/arch/business/report/ReportScheduleBO.hbm.xml"/>
+        <mapping resource="com/example/report/ReportDefinitionBO.hbm.xml"/>
+        <mapping resource="com/example/report/ReportScheduleBO.hbm.xml"/>
 
     </session-factory>
 </hibernate-configuration>

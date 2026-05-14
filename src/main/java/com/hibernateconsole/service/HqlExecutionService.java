@@ -1,7 +1,7 @@
-package gov.ca.dcss.tools.hqlconsole.service;
+package com.hibernateconsole.service;
 
-import gov.ca.dcss.tools.hqlconsole.model.QueryRequest;
-import gov.ca.dcss.tools.hqlconsole.model.QueryResult;
+import com.hibernateconsole.model.QueryRequest;
+import com.hibernateconsole.model.QueryResult;
 import org.hibernate.*;
 import org.hibernate.engine.SessionFactoryImplementor;
 import org.slf4j.Logger;

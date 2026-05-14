@@ -43,7 +43,7 @@
 
         <!-- Example mappings - replace with your actual paths -->
         <!--
-        <mapping resource="gov/ca/dcss/arch/business/report/ReportDefinitionBO.hbm.xml"/>
+        <mapping resource="com/example/report/ReportDefinitionBO.hbm.xml"/>
         <mapping resource="gov/ca/dcss/arch/business/job/partition/TaskPartitionBO.hbm.xml"/>
         -->
 

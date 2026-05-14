@@ -47,9 +47,9 @@ nano config/hibernate.cfg.xml
 
 Fill in:
 - `HOST` → your DB2 server hostname or IP
-- `DATABASE` → your database name (e.g. CSE01)
+- `DATABASE` → your database name (e.g. MYDB)
 - `YOUR_USERNAME` / `YOUR_PASSWORD`
-- `YOUR_SCHEMA` → e.g. RMADDINE
+- `YOUR_SCHEMA` → e.g. MYSCHEMA
 - Add your `<mapping resource="..."/>` entries
 
 ### 3. Start

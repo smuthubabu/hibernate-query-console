@@ -1,4 +1,4 @@
-package gov.ca.dcss.tools.hqlconsole.config;
+package com.hibernateconsole.config;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;

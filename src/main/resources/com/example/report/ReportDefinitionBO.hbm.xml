@@ -4,7 +4,7 @@
         "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 
 <hibernate-mapping>
-    <class name="gov.ca.dcss.arch.business.report.ReportDefinitionBO" table="REPORT_DEFINITION" schema="DB2INST1">
+    <class name="com.example.report.ReportDefinitionBO" table="REPORT_DEFINITION" schema="DB2INST1">
         <id name="reportId" column="REPORT_ID" type="long">
             <generator class="increment"/>
         </id>

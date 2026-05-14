@@ -1,7 +1,7 @@
-package gov.ca.dcss.tools.hqlconsole.service;
+package com.hibernateconsole.service;
 
-import gov.ca.dcss.tools.hqlconsole.model.EntityInfo;
-import gov.ca.dcss.tools.hqlconsole.model.FieldInfo;
+import com.hibernateconsole.model.EntityInfo;
+import com.hibernateconsole.model.FieldInfo;
 import org.hibernate.SessionFactory;
 import org.hibernate.metadata.ClassMetadata;
 import org.hibernate.type.*;

@@ -4,12 +4,12 @@
         "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 
 <hibernate-mapping>
-    <class name="gov.ca.dcss.arch.business.report.ReportScheduleBO" table="REPORT_SCHEDULE" schema="DB2INST1">
+    <class name="com.example.report.ReportScheduleBO" table="REPORT_SCHEDULE" schema="DB2INST1">
         <id name="scheduleId" column="SCHEDULE_ID" type="long">
             <generator class="increment"/>
         </id>
         <many-to-one name="reportDefinition"
-                     class="gov.ca.dcss.arch.business.report.ReportDefinitionBO"
+                     class="com.example.report.ReportDefinitionBO"
                      column="REPORT_ID"
                      not-null="true"
                      fetch="join"/>

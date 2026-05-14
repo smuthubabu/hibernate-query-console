@@ -1,8 +1,8 @@
-package gov.ca.dcss.tools.hqlconsole.controller;
+package com.hibernateconsole.controller;
 
-import gov.ca.dcss.tools.hqlconsole.model.QueryRequest;
-import gov.ca.dcss.tools.hqlconsole.model.QueryResult;
-import gov.ca.dcss.tools.hqlconsole.service.HqlExecutionService;
+import com.hibernateconsole.model.QueryRequest;
+import com.hibernateconsole.model.QueryResult;
+import com.hibernateconsole.service.HqlExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

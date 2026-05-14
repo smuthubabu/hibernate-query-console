@@ -1,4 +1,4 @@
-package gov.ca.dcss.tools.hqlconsole;
+package com.hibernateconsole;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
